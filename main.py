@@ -4,8 +4,22 @@ from bs4 import BeautifulSoup
 import re
 import os
 
-# Используем токен из переменных окружения
-bot = telebot.TeleBot(os.environ.get('8041110005:AAEyH4yY9ubOW8Wi4GUruoWsKrlVNMK_gqo'))
+# Проверяем переменные окружения
+BOT_TOKEN = os.environ.get('BOT_TOKEN')
+SITE_LOGIN = os.environ.get('SITE_LOGIN') 
+SITE_PASSWORD = os.environ.get('SITE_PASSWORD')
+
+print(f"🔧 Проверка переменных...")
+print(f"BOT_TOKEN: {'✅ Установлен' if BOT_TOKEN else '❌ Отсутствует'}")
+print(f"SITE_LOGIN: {'✅ Установлен' if SITE_LOGIN else '❌ Отсутствует'}")
+print(f"SITE_PASSWORD: {'✅ Установлен' if SITE_PASSWORD else '❌ Отсутствует'}")
+
+if not BOT_TOKEN:
+    print("❌ КРИТИЧЕСКАЯ ОШИБКА: BOT_TOKEN не установлен!")
+    exit(1)
+
+# Инициализируем бота
+bot = telebot.TeleBot(BOT_TOKEN)
 
 SESSION = requests.Session()
 HEADERS = {
@@ -13,14 +27,16 @@ HEADERS = {
 }
 SESSION.headers.update(HEADERS)
 
-# Данные из переменных окружения
 LOGIN_DATA = {
-    'login': os.environ.get('skolaotzyv@gmail.com'),
-    'password': os.environ.get('ufZ-kJK-r5Z-bNW')
+    'login': SITE_LOGIN,
+    'password': SITE_PASSWORD
 }
 
 def auth():
     try:
+        if not SITE_LOGIN or not SITE_PASSWORD:
+            return False
+            
         login_url = "https://oge.sdamgia.ru/profile"
         auth_response = SESSION.post(login_url, data=LOGIN_DATA, headers=HEADERS)
         
@@ -37,11 +53,15 @@ def auth():
 
 @bot.message_handler(commands=['start'])
 def start(message):
+    if not SITE_LOGIN or not SITE_PASSWORD:
+        bot.send_message(message.chat.id, "❌ Данные для авторизации не настроены")
+        return
+        
     bot.send_message(message.chat.id, "🔐 Пытаюсь авторизоваться...")
     if auth():
         bot.send_message(message.chat.id, "✅ Бот авторизован! Отправляй ссылку на тест с Решу ОГЭ")
     else:
-        bot.send_message(message.chat.id, "❌ Ошибка авторизации")
+        bot.send_message(message.chat.id, "❌ Ошибка авторизации. Проверь логин/пароль")
 
 @bot.message_handler(func=lambda message: True)
 def solve_test(message):
@@ -55,7 +75,6 @@ def solve_test(message):
         bot.send_message(message.chat.id, "⏳ Анализирую тест...")
         
         response = SESSION.get(url, headers=HEADERS)
-        # Используем html.parser вместо lxml
         soup = BeautifulSoup(response.content, 'html.parser')
         
         questions = soup.find_all('div', class_='question')
