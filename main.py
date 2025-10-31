@@ -2,16 +2,19 @@ import telebot
 import requests
 from bs4 import BeautifulSoup
 import re
+import flask
+from threading import Thread
 
-# 🔥 ПРЯМОЙ ТОКЕН (замени на свой если нужно)
+# Прямой токен
 BOT_TOKEN = "8041110005:AAEyH4yY9ubOW8Wi4GUruoWsKrlVNMK_gqo"
 SITE_LOGIN = "skolaotzyv@gmail.com"
 SITE_PASSWORD = "ufZ-kJK-r5Z-bNW"
 
-print(f"🔧 Запуск бота с токеном: {BOT_TOKEN[:10]}...")
-
 # Инициализируем бота
 bot = telebot.TeleBot(BOT_TOKEN)
+
+# Создаем Flask app для webhooks
+app = flask.Flask(__name__)
 
 SESSION = requests.Session()
 HEADERS = {
@@ -95,6 +98,38 @@ def solve_test(message):
     except Exception as e:
         bot.send_message(message.chat.id, f"❌ Ошибка: {str(e)}")
 
+# Webhook route для Render
+@app.route('/')
+def index():
+    return "🤖 Бот работает!"
+
+@app.route('/webhook/' + BOT_TOKEN, methods=['POST'])
+def webhook():
+    if flask.request.headers.get('content-type') == 'application/json':
+        json_string = flask.request.get_data().decode('utf-8')
+        update = telebot.types.Update.de_json(json_string)
+        bot.process_new_updates([update])
+        return ''
+    else:
+        flask.abort(403)
+
+# Запускаем бота в отдельном потоке
+def run_bot():
+    print("🔄 Запуск бота...")
+    try:
+        # Удаляем webhook чтобы очистить предыдущие instances
+        bot.remove_webhook()
+        bot.polling(none_stop=True, timeout=60)
+    except Exception as e:
+        print(f"Ошибка polling: {e}")
+
 if __name__ == "__main__":
-    print("🔄 Бот запускается на Render...")
-    bot.polling(none_stop=True, timeout=60)
+    print("🚀 Starting server...")
+    
+    # Запускаем бота в отдельном потоке
+    bot_thread = Thread(target=run_bot)
+    bot_thread.daemon = True
+    bot_thread.start()
+    
+    # Запускаем Flask app
+    app.run(host='0.0.0.0', port=10000, debug=False)
