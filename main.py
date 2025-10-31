@@ -2,21 +2,13 @@ import telebot
 import requests
 from bs4 import BeautifulSoup
 import re
-import os
 
-# Проверяем переменные окружения
-BOT_TOKEN = os.environ.get('BOT_TOKEN')
-SITE_LOGIN = os.environ.get('SITE_LOGIN') 
-SITE_PASSWORD = os.environ.get('SITE_PASSWORD')
+# 🔥 ПРЯМОЙ ТОКЕН (замени на свой если нужно)
+BOT_TOKEN = "8041110005:AAEyH4yY9ubOW8Wi4GUruoWsKrlVNMK_gqo"
+SITE_LOGIN = "skolaotzyv@gmail.com"
+SITE_PASSWORD = "ufZ-kJK-r5Z-bNW"
 
-print(f"🔧 Проверка переменных...")
-print(f"BOT_TOKEN: {'✅ Установлен' if BOT_TOKEN else '❌ Отсутствует'}")
-print(f"SITE_LOGIN: {'✅ Установлен' if SITE_LOGIN else '❌ Отсутствует'}")
-print(f"SITE_PASSWORD: {'✅ Установлен' if SITE_PASSWORD else '❌ Отсутствует'}")
-
-if not BOT_TOKEN:
-    print("❌ КРИТИЧЕСКАЯ ОШИБКА: BOT_TOKEN не установлен!")
-    exit(1)
+print(f"🔧 Запуск бота с токеном: {BOT_TOKEN[:10]}...")
 
 # Инициализируем бота
 bot = telebot.TeleBot(BOT_TOKEN)
@@ -34,9 +26,6 @@ LOGIN_DATA = {
 
 def auth():
     try:
-        if not SITE_LOGIN or not SITE_PASSWORD:
-            return False
-            
         login_url = "https://oge.sdamgia.ru/profile"
         auth_response = SESSION.post(login_url, data=LOGIN_DATA, headers=HEADERS)
         
@@ -53,15 +42,11 @@ def auth():
 
 @bot.message_handler(commands=['start'])
 def start(message):
-    if not SITE_LOGIN or not SITE_PASSWORD:
-        bot.send_message(message.chat.id, "❌ Данные для авторизации не настроены")
-        return
-        
     bot.send_message(message.chat.id, "🔐 Пытаюсь авторизоваться...")
     if auth():
         bot.send_message(message.chat.id, "✅ Бот авторизован! Отправляй ссылку на тест с Решу ОГЭ")
     else:
-        bot.send_message(message.chat.id, "❌ Ошибка авторизации. Проверь логин/пароль")
+        bot.send_message(message.chat.id, "❌ Ошибка авторизации")
 
 @bot.message_handler(func=lambda message: True)
 def solve_test(message):
